@@ -1,0 +1,69 @@
+{% extends "base.html" %}
+{% from "_icons.html" import icon %}
+{% block title %}Admin — {{ user.name }}{% endblock %}
+{% block topbar_title %}{{ user.name }}{% endblock %}
+{% block topbar_sub %}@{{ user.username }}{% endblock %}
+
+{% block crumbs %}
+<div class="app-crumbs">
+  <a href="{{ url_for('admin_dashboard') }}">Students</a>
+  <span class="sep">/</span>
+  <span>{{ user.name }}</span>
+</div>
+{% endblock %}
+
+{% block content %}
+<div class="metric-grid" style="grid-template-columns:repeat(auto-fit, minmax(150px, 1fr));">
+  <div class="metric-box"><div class="value" style="font-size:17px;">{{ user.email or '—' }}</div><div class="label">Email</div></div>
+  <div class="metric-box"><div class="value">{{ user.age or '—' }}</div><div class="label">Age</div></div>
+  <div class="metric-box"><div class="value" style="font-size:17px;">{{ user.profession or '—' }}</div><div class="label">Profession</div></div>
+  <div class="metric-box"><div class="value" style="font-size:17px;">{{ user.phone or '—' }}</div><div class="label">Phone</div></div>
+  <div class="metric-box"><div class="value" style="font-size:17px;">{{ user.location }}</div><div class="label">Location</div></div>
+  <div class="metric-box"><div class="value" style="font-size:17px;">{{ user.created_at | dt('%d %b %Y') }}</div><div class="label">Joined</div></div>
+  <div class="metric-box"><div class="value">{{ streak.current_streak }}</div><div class="label">Current streak (best {{ streak.longest_streak }})</div></div>
+  <div class="metric-box"><div class="value">{{ streak.total_active_days }}</div><div class="label">Active days</div></div>
+</div>
+
+{% for d in details %}
+<h2 class="section-title">{{ icon("map", 17) }} {{ d.display_name }} <span style="font-size:12px; color:var(--muted); font-weight:400;">({{ d.hours_per_week }} hrs/week)</span></h2>
+
+<div class="roadmap-list">
+  {% for t in d.roadmap %}
+  <div class="roadmap-item {{ t.status }}">
+    <div>
+      <strong>{{ t.display }}</strong>
+      <div class="rm-sub">Difficulty {{ t.difficulty }}/5</div>
+    </div>
+    <span class="badge {{ t.status }}">{{ t.status }}</span>
+  </div>
+  {% endfor %}
+</div>
+
+{% if d.progress_rows %}
+<div class="admin-table-wrap" style="margin-top:16px;">
+  <table class="admin-table">
+    <thead><tr><th>Topic</th><th>Source</th><th>Score</th><th>Mastered</th><th>Updated</th></tr></thead>
+    <tbody>
+      {% for p in d.progress_rows %}
+      <tr>
+        <td>{{ p.topic_id }}</td>
+        <td>{{ p.source }}</td>
+        <td>{{ (p.quiz_score * 100)|round|int }}%</td>
+        <td><span class="badge {{ 'mastered' if p.mastered else 'locked' }}">{{ 'Yes' if p.mastered else 'No' }}</span></td>
+        <td>{{ p.updated_at | dt }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endif %}
+{% endfor %}
+
+{% if not details %}
+<div class="empty-state">This student hasn't started any skill yet.</div>
+{% endif %}
+
+<a href="{{ url_for('admin_dashboard') }}" class="btn ghost" style="margin:26px 0 10px;">
+  {{ icon("arrow-left", 15) }} All students
+</a>
+{% endblock %}

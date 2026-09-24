@@ -1,0 +1,555 @@
+{% extends "base.html" %}
+{% from "_icons.html" import icon %}
+
+{% block title %}
+Admin — Students
+{% endblock %}
+
+{% block topbar_title %}
+Students
+{% endblock %}
+
+{% block topbar_sub %}
+Everyone learning on Learnora right now.
+{% endblock %}
+
+
+{% block content %}
+
+<!-- =====================================================
+     STUDENTS
+===================================================== -->
+
+<div class="page-head">
+  <h1>All students</h1>
+
+  <p>
+    Prototype note: this view is for demonstration purposes.
+    A production deployment would add role-based access
+    control, audit logging, encryption at rest, and rate
+    limiting on top of this.
+  </p>
+</div>
+
+
+<!-- =====================================================
+     STUDENT METRICS
+===================================================== -->
+
+<div class="metric-grid">
+
+  <div class="metric-box">
+    <div class="value">
+      {{ student_rows|length }}
+    </div>
+
+    <div class="label">
+      Registered students
+    </div>
+  </div>
+
+
+  <div class="metric-box">
+    <div class="value">
+      {{ total_enrollments }}
+    </div>
+
+    <div class="label">
+      Total enrolments
+    </div>
+  </div>
+
+
+  <div class="metric-box">
+    <div class="value">
+      {{ active_learners }}
+    </div>
+
+    <div class="label">
+      Active learners
+    </div>
+  </div>
+
+</div>
+
+
+<!-- =====================================================
+     STUDENT TABLE
+===================================================== -->
+
+{% if student_rows %}
+
+<div class="admin-table-wrap">
+
+  <table class="admin-table">
+
+    <thead>
+
+      <tr>
+        <th>Name</th>
+        <th>Email</th>
+        <th>Location</th>
+        <th>Profession</th>
+        <th>Skills enrolled</th>
+        <th></th>
+      </tr>
+
+    </thead>
+
+
+    <tbody>
+
+      {% for row in student_rows %}
+
+      <tr>
+
+        <td>
+
+          <strong>
+            {{ row.user.name }}
+          </strong>
+
+          <div
+            style="
+              font-size:11.5px;
+              color:var(--muted);
+            "
+          >
+            @{{ row.user.username }}
+          </div>
+
+        </td>
+
+
+        <td>
+          {{ row.user.email or '—' }}
+        </td>
+
+
+        <td>
+          {{ row.user.location }}
+        </td>
+
+
+        <td>
+          {{ row.user.profession or '—' }}
+        </td>
+
+
+        <td>
+          {{
+            row.skills_summary|join(', ')
+            if row.skills_summary
+            else '—'
+          }}
+        </td>
+
+
+        <td>
+
+          <a
+            href="{{ url_for(
+              'admin_student_detail',
+              user_id=row.user.id
+            ) }}"
+            class="btn ghost small"
+          >
+            View
+            {{ icon(
+              "chevron-right",
+              13
+            ) }}
+          </a>
+
+        </td>
+
+      </tr>
+
+      {% endfor %}
+
+    </tbody>
+
+  </table>
+
+</div>
+
+{% else %}
+
+<div class="empty-state">
+  No students have registered yet.
+</div>
+
+{% endif %}
+
+
+
+<!-- =====================================================
+     HELP DESK
+===================================================== -->
+
+<div
+  class="page-head"
+  style="margin-top:36px;"
+>
+  <h2>Help Desk Requests</h2>
+  <p>
+    Review questions sent by students from the Learnora Help Center.
+  </p>
+</div>
+
+<div class="admin-table-wrap support-admin-wrap">
+
+  <div id="support-admin-content">
+  {% if support_tickets %}
+
+  <table class="admin-table support-admin-table">
+
+    <thead>
+      <tr>
+        <th>Student</th>
+        <th>Topic</th>
+        <th>Priority</th>
+        <th>Message</th>
+        <th>Status</th>
+        <th>Submitted</th>
+        <th>Actions</th>
+      </tr>
+    </thead>
+
+    <tbody>
+
+      {% for ticket in support_tickets %}
+
+      <tr id="ticket-row-{{ ticket.id }}">
+
+        <td>
+          <strong>
+            {{ ticket.user_name or 'Learner' }}
+          </strong>
+
+          <div style="font-size:11.5px;color:var(--muted);">
+            {{ ticket.user_email or ticket.user_id or '—' }}
+          </div>
+        </td>
+
+        <td>
+          {{ ticket.topic or 'General help' }}
+        </td>
+
+        <td>
+          <span class="support-pill priority-{{ ticket.priority or 'normal' }}">
+            {{ ticket.priority or 'normal' }}
+          </span>
+        </td>
+
+        <td class="support-message-cell">
+          <div class="support-original-message">
+            {{ ticket.message or '—' }}
+          </div>
+
+          {% if ticket.admin_message %}
+          <div class="support-admin-response">
+            <strong>Admin response</strong>
+            <span>{{ ticket.admin_message }}</span>
+          </div>
+          {% endif %}
+        </td>
+
+        <td>
+          <span
+            id="ticket-status-{{ ticket.id }}"
+            class="support-pill status-{{ ticket.status or 'open' }}"
+          >
+            {{ ticket.status or 'open' }}
+          </span>
+        </td>
+
+        <td>
+          {{ ticket.created_at|dt }}
+        </td>
+
+        <td>
+          <div class="support-actions">
+
+            {% if (ticket.status or 'open') != 'approved' %}
+            <button
+              type="button"
+              class="support-action approve"
+              data-ticket-id="{{ ticket.id }}"
+              onclick="approveSupportTicket(this)"
+            >
+              {{ icon("check", 14) }}
+              Approve
+            </button>
+            {% else %}
+            <button
+              type="button"
+              class="support-action approve approved-btn"
+              disabled
+            >
+              {{ icon("check", 14) }}
+              Approved
+            </button>
+            {% endif %}
+
+            <button
+              type="button"
+              class="support-action delete"
+              data-ticket-id="{{ ticket.id }}"
+              onclick="deleteSupportTicket(this)"
+            >
+              Delete
+            </button>
+
+          </div>
+        </td>
+
+      </tr>
+
+      {% endfor %}
+
+    </tbody>
+  </table>
+
+  {% else %}
+  <div class="empty-state">
+    No Help Desk requests have been submitted yet.
+  </div>
+  {% endif %}
+  </div>
+
+</div>
+
+<style>
+.support-admin-wrap {
+  overflow-x: auto;
+}
+
+.support-admin-table {
+  min-width: 1180px;
+}
+
+.support-message-cell {
+  min-width: 280px;
+  max-width: 420px;
+}
+
+.support-original-message {
+  white-space: pre-wrap;
+  word-break: break-word;
+  line-height: 1.5;
+}
+
+.support-admin-response {
+  margin-top: 10px;
+  padding: 10px 12px;
+  border-radius: 10px;
+  background: #eef7ff;
+  border: 1px solid #d8eaff;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  line-height: 1.45;
+}
+
+.support-admin-response strong {
+  font-size: 12px;
+}
+
+.support-admin-response span {
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.support-pill {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 6px 10px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 700;
+  text-transform: capitalize;
+  white-space: nowrap;
+}
+
+.priority-normal {
+  background: #eef2ff;
+  color: #5366d8;
+}
+
+.priority-important {
+  background: #fff6df;
+  color: #a26b00;
+}
+
+.priority-urgent {
+  background: #fff0f0;
+  color: #c13e3e;
+}
+
+.status-open {
+  background: #eef4ff;
+  color: #3867ff;
+}
+
+.status-approved {
+  background: #e9f9f0;
+  color: #168652;
+}
+
+.support-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.support-action {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  border: 0;
+  border-radius: 10px;
+  padding: 8px 11px;
+  font: inherit;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: transform .16s ease, opacity .16s ease;
+}
+
+.support-action:hover {
+  transform: translateY(-1px);
+}
+
+.support-action:disabled {
+  cursor: default;
+  opacity: .75;
+  transform: none;
+}
+
+.support-action.approve {
+  background: #e9f9f0;
+  color: #168652;
+}
+
+.support-action.delete {
+  background: #fff0f0;
+  color: #c13e3e;
+}
+</style>
+
+<script>
+(function () {
+  const container = document.getElementById('support-admin-content');
+  if (!container) return;
+
+  const escapeHtml = (value) => String(value ?? '').replace(/[&<>'"]/g, (char) => ({
+    '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;'
+  }[char]));
+
+  const formatDate = (value) => {
+    const d = new Date(value);
+    if (Number.isNaN(d.getTime())) return '—';
+    return d.toLocaleString('en-IN', { day: 'numeric', month: 'short', year: 'numeric', hour: 'numeric', minute: '2-digit' });
+  };
+
+  const iconCheck = '<svg class="ic" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="m5 12 4 4L19 6"/></svg>';
+
+  const render = (tickets) => {
+    if (!tickets.length) {
+      container.innerHTML = '<div class="empty-state">No Help Desk requests have been submitted yet.</div>';
+      return;
+    }
+
+    container.innerHTML = `
+      <table class="admin-table support-admin-table">
+        <thead><tr><th>Student</th><th>Topic</th><th>Priority</th><th>Message</th><th>Status</th><th>Submitted</th><th>Actions</th></tr></thead>
+        <tbody>
+          ${tickets.map(ticket => {
+            const status = ticket.status || 'open';
+            const priority = ticket.priority || 'normal';
+            return `<tr id="ticket-row-${escapeHtml(ticket.id)}">
+              <td><strong>${escapeHtml(ticket.user_name || 'Learner')}</strong><div style="font-size:11.5px;color:var(--muted);">${escapeHtml(ticket.user_email || ticket.user_id || '—')}</div></td>
+              <td>${escapeHtml(ticket.topic || 'General help')}</td>
+              <td><span class="support-pill priority-${escapeHtml(priority)}">${escapeHtml(priority)}</span></td>
+              <td class="support-message-cell"><div class="support-original-message">${escapeHtml(ticket.message || '—')}</div>${ticket.admin_message ? `<div class="support-admin-response"><strong>Admin response</strong><span>${escapeHtml(ticket.admin_message)}</span></div>` : ''}</td>
+              <td><span id="ticket-status-${escapeHtml(ticket.id)}" class="support-pill status-${escapeHtml(status)}">${escapeHtml(status)}</span></td>
+              <td>${escapeHtml(formatDate(ticket.created_at))}</td>
+              <td><div class="support-actions">
+                ${status !== 'approved' ? `<button type="button" class="support-action approve" data-ticket-id="${escapeHtml(ticket.id)}" onclick="approveSupportTicket(this)">${iconCheck} Approve</button>` : `<button type="button" class="support-action approve approved-btn" disabled>${iconCheck} Approved</button>`}
+                <button type="button" class="support-action delete" data-ticket-id="${escapeHtml(ticket.id)}" onclick="deleteSupportTicket(this)">Delete</button>
+              </div></td>
+            </tr>`;
+          }).join('')}
+        </tbody>
+      </table>`;
+  };
+
+  let lastSignature = '';
+  const refreshSupportTickets = async () => {
+    try {
+      const response = await fetch('/api/admin/support-tickets', { credentials: 'same-origin', headers: { 'Accept': 'application/json' }, cache: 'no-store' });
+      if (!response.ok) throw new Error('Failed to load Help Desk requests');
+      const data = await response.json();
+      const tickets = Array.isArray(data.tickets) ? data.tickets : [];
+      const signature = JSON.stringify(tickets.map(t => [t.id, t.status, t.admin_message, t.message, t.created_at]));
+      if (signature !== lastSignature) {
+        lastSignature = signature;
+        render(tickets);
+      }
+    } catch (error) {
+      console.error('[admin helpdesk] live refresh', error);
+    }
+  };
+
+  // The server-rendered table is immediately usable. The API keeps it live without a page reload.
+  refreshSupportTickets();
+  window.setInterval(refreshSupportTickets, 4000);
+
+  window.approveSupportTicket = async function (button) {
+    const ticketId = button.dataset.ticketId;
+    if (!ticketId) return;
+    const adminMessage = window.prompt('Enter the message you want to send to the student:', '');
+    if (adminMessage === null) return;
+    const message = adminMessage.trim();
+    if (!message) { window.alert('Please enter a message before approving the request.'); return; }
+    if (message.length > 2000) { window.alert('Admin message must be 2000 characters or less.'); return; }
+
+    button.disabled = true;
+    const oldText = button.innerHTML;
+    button.textContent = 'Approving...';
+    try {
+      const response = await fetch('/admin/support/' + encodeURIComponent(ticketId) + '/approve', {
+        method: 'POST', credentials: 'same-origin', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ admin_message: message })
+      });
+      const data = await response.json();
+      if (!response.ok || !data.ok) throw new Error(data.error || 'Failed to approve the support request.');
+      lastSignature = '';
+      await refreshSupportTickets();
+    } catch (error) {
+      console.error(error); window.alert(error.message); button.disabled = false; button.innerHTML = oldText;
+    }
+  };
+
+  window.deleteSupportTicket = async function (button) {
+    const ticketId = button.dataset.ticketId;
+    if (!ticketId || !window.confirm('Delete this Help Desk request permanently?')) return;
+    button.disabled = true;
+    const oldText = button.innerHTML;
+    button.textContent = 'Deleting...';
+    try {
+      const response = await fetch('/admin/support/' + encodeURIComponent(ticketId) + '/delete', { method: 'POST', credentials: 'same-origin', headers: { 'Content-Type': 'application/json' } });
+      const data = await response.json();
+      if (!response.ok || !data.ok) throw new Error(data.error || 'Failed to delete the support request.');
+      lastSignature = '';
+      await refreshSupportTickets();
+    } catch (error) {
+      console.error(error); window.alert(error.message); button.disabled = false; button.innerHTML = oldText;
+    }
+  };
+})();
+</script>
+{% endblock %}
